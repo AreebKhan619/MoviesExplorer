@@ -4,7 +4,10 @@ var path = require("path");
 var axios = require("axios");
 const fs = require("fs");
 const nrc = require("node-run-cmd");
-const location = "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
+// const location = "H:\\New folder\\Movies";
+// const location = "D:\\Downloads QB and Browser\\Movies\\Newer";
+const location =
+  "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
 process.chdir(location);
 const API_KEY = "65a808e1de41c6756cc5f7b3183112a7";
 var cors = require("cors");
@@ -21,10 +24,10 @@ app.use(cors());
 // console.log(process.cwd());
 // console.log(__dirname);
 
-const getMetaData = async ({ movieName, path }) => {
+const getMetaData = async ({ movieName, year, path }) => {
   return new Promise(async (resolve, reject) => {
     let { data } = await axios.get(
-      `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&language=en-US&query=${movieName}&page=1&include_adult=true`
+      `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&language=en-US&query=${movieName}&year=${year}&page=1&include_adult=true`
     );
     // return data;
     data.path = path;
@@ -51,6 +54,7 @@ const getMoviesData = async () => {
         let nameOnly = movieNameYear.split("(")[0];
         moviesArray.push({
           movieName: nameOnly.trim(),
+          year: movieNameYear.match(/\d+/),
           path: `${location}\\${folderName}\\`,
         });
       }
@@ -103,6 +107,7 @@ app.get("/getActors", async (req, res) => {
 
 app.post("/playMovie", async (req, res) => {
   let { path } = req.body;
+
   fs.readdir(path, (err, files) => {
     files.some((file) => {
       if (
@@ -123,12 +128,12 @@ app.post("/playMovie", async (req, res) => {
   });
 });
 
-// try {
-//   console.log("Running...");
-//   getMoviesData();
-// } catch (error) {
-//   console.log(error);
-// }
+try {
+  console.log("Running...");
+  getMoviesData();
+} catch (error) {
+  console.log(error);
+}
 
 app.listen(4000, function () {
   console.log("Movies Explorer Started on Port 4000");
