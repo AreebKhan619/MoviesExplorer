@@ -8,7 +8,8 @@ const nrc = require("node-run-cmd");
 // const location = "D:\\Downloads QB and Browser\\Movies\\Newer";
 const location =
   // "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
-  "D:\\Downloads QB and Browser\\Movies\\Newer";
+  // "D:\\Downloads QB and Browser\\Movies\\Newer";
+  "H:\\New folder\\Movies";
 process.chdir(location);
 const API_KEY = "65a808e1de41c6756cc5f7b3183112a7";
 var cors = require("cors");
@@ -104,6 +105,13 @@ app.get("/getActors", async (req, res) => {
   }
 });
 
+app.post("/openDirectory", async (req, res) => {
+  let { path } = req.body;
+
+  nrc.run(["explorer " + path], {cwd: path}).then((data) => console.log(data));
+  res.json(req.body);
+});
+
 app.post("/playMovie", async (req, res) => {
   let { path } = req.body;
 
@@ -127,12 +135,12 @@ app.post("/playMovie", async (req, res) => {
   });
 });
 
-try {
-  console.log("Running...");
-  getMoviesData();
-} catch (error) {
-  console.log(error);
-}
+// try {
+//   console.log("Running...");
+//   getMoviesData();
+// } catch (error) {
+//   console.log(error);
+// }
 
 app.listen(4000, function () {
   console.log("Movies Explorer Started on Port 4000");

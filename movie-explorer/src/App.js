@@ -86,6 +86,11 @@ function App() {
     console.log(data);
   };
 
+  const folderHandler = async (path) => {
+    const { data } = await axios.post(`${LOCAL_URL}/openDirectory`, { path });
+    console.log(data);
+  };
+
   let sortedMovies = useMemo(() => {
     if (!sortBy) return filteredMovies;
     else if (sortBy === "asc" || sortBy === "desc") {
@@ -118,7 +123,15 @@ function App() {
   );
 
   const MemoisedFilerSection = useMemo(
-    () => <FilterSection setGenreId={(id)=>{setGenreId(id);setSortBy(null);setSearch("")}} />,
+    () => (
+      <FilterSection
+        setGenreId={(id) => {
+          setGenreId(id);
+          setSortBy(null);
+          setSearch("");
+        }}
+      />
+    ),
     []
   );
 
@@ -214,6 +227,7 @@ function App() {
             clearSelection={clearSelection}
             selectedMovie={selectedMovie}
             playHandler={playHandler}
+            folderHandler={folderHandler}
           />
         )}
       </Modal>
@@ -295,7 +309,7 @@ const MovieItem = ({
             lineHeight={1.1}
           >
             {title} {title !== original_title && `(${original_title})`} (
-            {release_date.split("-")[0]})
+            {release_date?.split("-")[0]})
           </Text>
           <Text
             my={1}
@@ -371,7 +385,12 @@ const labelColorGenerator = (index) => {
   }
 };
 
-const MovieModal = ({ selectedMovie, clearSelection, playHandler }) => {
+const MovieModal = ({
+  selectedMovie,
+  clearSelection,
+  playHandler,
+  folderHandler,
+}) => {
   const [cast, setCast] = useState([]);
   const [crew, setCrew] = useState([]);
 
@@ -395,7 +414,7 @@ const MovieModal = ({ selectedMovie, clearSelection, playHandler }) => {
     <>
       <ModalContent>
         <ModalHeader>
-          {selectedMovie.title} ({selectedMovie.release_date.split("-")[0]})
+          {selectedMovie.title} ({selectedMovie.release_date?.split("-")[0]})
           <Stack direction="row">
             {selectedMovie.genre_ids.map((id, i) => (
               <Badge key={id} colorScheme={labelColorGenerator(i)}>
@@ -451,8 +470,8 @@ const MovieModal = ({ selectedMovie, clearSelection, playHandler }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" mr={10} onClick={clearSelection}>
-            Close
+          <Button variant="ghost" mr={10} onClick={()=>folderHandler(selectedMovie.path)}>
+            Open in Explorer
           </Button>
           <Button
             onClick={() => playHandler(selectedMovie.path)}
