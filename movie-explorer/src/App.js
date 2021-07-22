@@ -9,8 +9,9 @@ import {
   InputGroup,
   InputLeftElement,
   InputRightElement,
+  Select,
 } from "@chakra-ui/react";
-import { Search2Icon } from "@chakra-ui/icons";
+import { Search2Icon, TriangleUpIcon } from "@chakra-ui/icons";
 import {
   Flex,
   Box,
@@ -40,16 +41,16 @@ function App() {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    console.log(search);
-    console.log("search's value has been changed");
-  }, [search]);
+  const [sortBy, setSortBy] = useState(null);
+  const [genreId, setGenreId] = useState(null);
 
   const handleText = (event) => {
     setText(event.target.value);
   };
 
   const handleSearch = () => {
+    setSortBy(null);
+    setGenreId(null);
     setSearch(text);
   };
 
@@ -62,6 +63,15 @@ function App() {
       }),
     [search]
   );
+
+  let genreMovies = useMemo(() => {
+    if (!genreId) return filteredMovies;
+    return moviesData.data.filter((movie) => {
+      return movie.results[0]?.genre_ids.includes(parseInt(genreId));
+    });
+  }, [genreId, filteredMovies]);
+
+  console.log(genreMovies, "GENRE MOVIES YO");
 
   const readMore = (movie, path) => {
     setSelectedMovie({ ...movie, path });
@@ -78,26 +88,40 @@ function App() {
     console.log(data);
   };
 
-  // const sortByRating = () => {
-  //   // console.log(filteredMovies)
-  //   filteredMovies = filteredMovies.slice().sort((b, a) => {
-  //     if (a.results[0]?.title > b.results[0]?.title) return -1;
-  //     else if (a.results[0]?.title < b.results[0]?.title) return 1;
-  //     else return 0;
-  //   });
-
-  //   console.log(filteredMovies)
-  // };
+  let sortedMovies = useMemo(() => {
+    if (!sortBy) return filteredMovies;
+    else if (sortBy === "asc" || sortBy === "desc") {
+      let multiplier = sortBy === "asc" ? 1 : -1;
+      return filteredMovies.slice().sort((b, a) => {
+        if (a.results[0]?.title > b.results[0]?.title) return multiplier * -1;
+        else if (a.results[0]?.title < b.results[0]?.title)
+          return multiplier * 1;
+        else return 0;
+      });
+    } else if (sortBy === "rateAsc" || sortBy === "rateDesc") {
+      let multiplier = sortBy === "rateAsc" ? -1 : 1;
+      return filteredMovies.slice().sort((a, b) => {
+        return (
+          multiplier * (a.results[0]?.vote_average - b.results[0]?.vote_average)
+        );
+      });
+    } else return filteredMovies;
+  }, [sortBy]);
 
   const MemoisedMoviesList = useMemo(
     () => (
       <MoviesList
-        movies={filteredMovies}
+        movies={sortBy ? sortedMovies : genreId ? genreMovies : filteredMovies}
         readMore={readMore}
         playHandler={playHandler}
       />
     ),
-    [filteredMovies]
+    [filteredMovies, sortBy, genreId]
+  );
+
+  const MemoisedFilerSection = useMemo(
+    () => <FilterSection setGenreId={setGenreId} />,
+    []
   );
 
   return (
@@ -115,10 +139,6 @@ function App() {
           boxShadow="0 1px 1px #d8d4d4"
         >
           <Stack direction="row" alignItems="center">
-            <Button colorScheme="teal" size="sm">
-              Sort by name
-            </Button>
-
             <form
               style={{ flex: 1 }}
               onSubmit={(e) => {
@@ -134,9 +154,10 @@ function App() {
                 <Input
                   type="text"
                   value={text}
+                  onClick={(e) => e.target.select()}
                   onChange={handleText}
                   variant="filled"
-                  placeholder="Search..."
+                  placeholder="Search the movie catalog"
                 />
                 <InputRightElement width="4.5rem">
                   <Button h="1.75rem" size="sm" onClick={handleSearch}>
@@ -145,15 +166,36 @@ function App() {
                 </InputRightElement>
               </InputGroup>
             </form>
-
-            <Button onClick={() => {}} colorScheme="teal" size="sm">
+            <Button
+              onClick={() =>
+                setSortBy((sort) => (sort === "asc" ? "desc" : "asc"))
+              }
+              colorScheme="gray"
+              size="sm"
+              variant="ghost"
+            >
+              Sort by name
+            </Button>
+            <Button
+              colorScheme="gray"
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                setSortBy((sort) =>
+                  sort === "rateAsc" ? "rateDesc" : "rateAsc"
+                )
+              }
+            >
               Sort by rating
             </Button>
+
+            {MemoisedFilerSection}
+            {/* <FilterSection /> */}
           </Stack>
         </Container>
       </Navbar>
 
-      <Spacer mt={12} pt={5}/>
+      <Spacer mt={12} pt={5} />
       <Box fontSize="smaller" ml={12}>
         Found {filteredMovies.length} entries
       </Box>
@@ -162,7 +204,7 @@ function App() {
       </Flex>
 
       <Modal
-        isCentered={true}
+        // isCentered={true}
         size="2xl"
         isOpen={showMore}
         onClose={clearSelection}
@@ -194,6 +236,7 @@ const MoviesList = ({ movies, readMore, playHandler }) => {
           vote_average,
           poster_path,
           overview,
+          genre_ids,
         } = results[0];
         return (
           <MovieItem
@@ -209,6 +252,7 @@ const MoviesList = ({ movies, readMore, playHandler }) => {
             playHandler={playHandler}
             result={results[0]}
             path={path}
+            genre_ids={genre_ids}
           />
         );
       })}
@@ -227,12 +271,15 @@ const MovieItem = ({
   overview,
   result,
   path,
+
+  genre_ids,
 }) => {
   return (
     <Box p={2} borderWidth={1} maxWidth={280} margin={1}>
       <Image
         objectFit="contain"
         margin="auto"
+        borderRadius="md"
         src={`https://image.tmdb.org/t/p/w200/${poster_path}`}
       />
       <Stack
@@ -247,6 +294,7 @@ const MovieItem = ({
             fontSize="lg"
             letterSpacing="wide"
             color="teal.600"
+            lineHeight={1.1}
           >
             {title} {title !== original_title && `(${original_title})`} (
             {release_date.split("-")[0]})
@@ -269,12 +317,23 @@ const MovieItem = ({
           </Text>
         </Flex>
 
+        <Box>
+          <Stack direction="row" flexWrap="wrap">
+            {genre_ids.map((id, i) => (
+              <Badge mb={1} key={id} colorScheme={labelColorGenerator(i)}>
+                {genres[id]}
+              </Badge>
+            ))}
+          </Stack>
+        </Box>
+
         <Text
           style={{
             display: "-webkit-box",
             WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            lineHeight: 1.1,
           }}
           my={2}
           color="gray.500"
@@ -285,7 +344,13 @@ const MovieItem = ({
           Read More
         </Button>
         {/* <Content text={overview} /> */}
-        <Button onClick={() => playHandler(path)} colorScheme="blue" my={2}>
+        <Button
+          // TriangleUpIcon
+          leftIcon={<TriangleUpIcon transform="rotate(90deg)" />}
+          onClick={() => playHandler(path)}
+          colorScheme="blue"
+          my={2}
+        >
           Play
         </Button>
       </Stack>
@@ -352,7 +417,7 @@ const MovieModal = ({ selectedMovie, clearSelection, playHandler }) => {
           >
             <Image
               borderRadius="md"
-              boxSize="200px"
+              // boxSize="200px"
               objectFit="cover"
               src={`https://image.tmdb.org/t/p/w200/${selectedMovie.poster_path}`}
               alt={selectedMovie.title}
@@ -411,6 +476,66 @@ const Navbar = ({ children }) => {
   });
 
   return <>{children}</>;
+};
+
+const FilterSection = ({ setGenreId }) => {
+  const [show, setShow] = useState(false);
+
+  const getGenres = () => {
+    let keys = Object.keys(genres);
+    return keys.map((el) => ({
+      id: el,
+      name: genres[el],
+    }));
+  };
+
+  const selectGenre = (genreId) => {
+    setShow(false);
+    setGenreId(genreId);
+    console.log(genres[genreId]);
+  };
+
+  return (
+    <>
+      <Button
+        colorScheme="gray"
+        size="sm"
+        variant="ghost"
+        onClick={() => setShow(!show)}
+      >
+        Filter by genre
+      </Button>
+
+      {show && (
+        <Box
+          bg="white"
+          position="absolute"
+          left={0}
+          style={{ top: 48, left: "-0.5rem" }}
+          marginInlineStart={0}
+        >
+          <Stack padding={2} direction="row" flexWrap="wrap">
+            {getGenres().map(({ id, name }, i) => (
+              <Badge
+                cursor="pointer"
+                _hover={{
+                  background: "black",
+                  color: "white",
+                }}
+                borderRadius={1}
+                onClick={() => selectGenre(id)}
+                mb={1}
+                key={id}
+                colorScheme={labelColorGenerator(i)}
+              >
+                {name}
+              </Badge>
+            ))}
+          </Stack>
+        </Box>
+      )}
+    </>
+  );
 };
 
 export default App;
