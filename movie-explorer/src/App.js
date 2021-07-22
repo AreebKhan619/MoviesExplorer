@@ -71,8 +71,6 @@ function App() {
     });
   }, [genreId, filteredMovies]);
 
-  console.log(genreMovies, "GENRE MOVIES YO");
-
   const readMore = (movie, path) => {
     setSelectedMovie({ ...movie, path });
     setShowMore(true);
@@ -120,7 +118,7 @@ function App() {
   );
 
   const MemoisedFilerSection = useMemo(
-    () => <FilterSection setGenreId={setGenreId} />,
+    () => <FilterSection setGenreId={(id)=>{setGenreId(id);setSortBy(null);setSearch("")}} />,
     []
   );
 

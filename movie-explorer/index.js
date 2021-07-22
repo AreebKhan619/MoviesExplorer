@@ -7,7 +7,8 @@ const nrc = require("node-run-cmd");
 // const location = "H:\\New folder\\Movies";
 // const location = "D:\\Downloads QB and Browser\\Movies\\Newer";
 const location =
-  "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
+  // "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
+  "D:\\Downloads QB and Browser\\Movies\\Newer";
 process.chdir(location);
 const API_KEY = "65a808e1de41c6756cc5f7b3183112a7";
 var cors = require("cors");
@@ -17,12 +18,6 @@ var app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
-
-// const moviesRouter = require("./router/moviesRouter");
-// app.use("/movies", moviesRouter);
-
-// console.log(process.cwd());
-// console.log(__dirname);
 
 const getMetaData = async ({ movieName, year, path }) => {
   return new Promise(async (resolve, reject) => {
@@ -38,46 +33,50 @@ const getMetaData = async ({ movieName, year, path }) => {
 let moviesArray = [];
 
 const getMoviesData = async () => {
-  console.log("Searching the directory for movies...");
-  await finder.on("directory", async (dir, stat, stop) => {
-    var base = path.basename(dir);
-    const folderName = dir;
-    if (base === ".git" || base === "node_modules") stop();
-    else {
-      // console.log(dir)
-      if (dir.includes("(")) {
-        if (dir.includes("\\")) {
-          dir = dir.split("\\")[1];
-        }
-        // console.log(`${location}\\${folderName}\\`)
-        let movieNameYear = dir;
-        let nameOnly = movieNameYear.split("(")[0];
-        moviesArray.push({
-          movieName: nameOnly.trim(),
-          year: movieNameYear.match(/\d+/),
-          path: `${location}\\${folderName}\\`,
-        });
+  try {
+    let index = 1;
+    console.log("Searching the directory for movies...");
+    await finder.on("directory", async (dir, stat, stop) => {
+      index++;
+
+      if (index > 10) stop();
+      var base = path.basename(dir);
+      const folderName = dir;
+      if (base === ".git" || base === "node_modules") stop();
+      else {
+        let year = (dir.match(/\d{4}/) || [])[0] || "";
+        let movieName = (year ? dir.split(year) : [dir])[0];
+        movieName = movieName.replace(".", " ").replace("(", " ").trim();
+        if (movieName)
+          moviesArray.push({
+            movieName,
+            year,
+            path: `${location}\\${folderName}\\`,
+          });
       }
-    }
-  });
+    });
 
-  finder.on("end", async () => {
-    console.log("Movie folders found! Getting metadata from the internet...");
-    let result = {
-      data: [],
-    };
-    const data = await Promise.all(moviesArray.map(getMetaData));
-    console.log("Fetched the data.");
+    finder.on("end", async () => {
+      console.log(moviesArray);
+      console.log("Movie folders found! Getting metadata from the internet...");
+      let result = {
+        data: [],
+      };
+      const data = await Promise.all(moviesArray.map(getMetaData));
+      console.log("Fetched the data.");
 
-    result.data.push(...data);
-    console.log("Writing data...");
-    fs.writeFileSync(
-      __dirname + "/src/data/moviesData.json",
-      JSON.stringify(result),
-      "utf8"
-    );
-    console.log("Movies Data written!");
-  });
+      result.data.push(...data);
+      console.log("Writing data...");
+      fs.writeFileSync(
+        __dirname + "/src/data/moviesData.json",
+        JSON.stringify(result),
+        "utf8"
+      );
+      console.log("Movies Data written!");
+    });
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 app.get("/", (req, res) => {
