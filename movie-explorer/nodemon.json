@@ -1,4 +1,7 @@
 {
 	"watch": ["index.js"],
-	"ext": "js, css"
+	"ext": "js, css",
+	"events": {
+		"start": "cls"
+	}
   }

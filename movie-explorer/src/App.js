@@ -9,7 +9,7 @@ import {
   InputGroup,
   InputLeftElement,
   InputRightElement,
-  Select,
+  // Select,
 } from "@chakra-ui/react";
 import { Search2Icon, TriangleUpIcon } from "@chakra-ui/icons";
 import {
@@ -259,7 +259,7 @@ const MoviesList = ({ movies, readMore, playHandler }) => {
             vote_average={vote_average}
             poster_path={poster_path}
             overview={overview}
-            key={id + "" + i}
+            key={id}
             readMore={readMore}
             playHandler={playHandler}
             result={results[0]}
@@ -470,7 +470,11 @@ const MovieModal = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="ghost" mr={10} onClick={()=>folderHandler(selectedMovie.path)}>
+          <Button
+            variant="ghost"
+            mr={10}
+            onClick={() => folderHandler(selectedMovie.path)}
+          >
             Open in Explorer
           </Button>
           <Button
@@ -488,10 +492,6 @@ const MovieModal = ({
 };
 
 const Navbar = ({ children }) => {
-  useEffect(() => {
-    console.log("navbar mounted!");
-  });
-
   return <>{children}</>;
 };
 

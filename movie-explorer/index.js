@@ -4,12 +4,14 @@ var path = require("path");
 var axios = require("axios");
 const fs = require("fs");
 const nrc = require("node-run-cmd");
-// const location = "H:\\New folder\\Movies";
+const location = "H:\\New folder\\Movies";
 // const location = "D:\\Downloads QB and Browser\\Movies\\Newer";
-const location =
-  // "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
-  // "D:\\Downloads QB and Browser\\Movies\\Newer";
-  "H:\\New folder\\Movies";
+// const location = "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV";
+// const location = "G:\\Movies"
+// const location = "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV\\Nested";
+// "D:\\Downloads QB and Browser\\Movies\\Newer";
+// "H:\\New folder\\Movies";
+// "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV\\Evil Dead";
 process.chdir(location);
 const API_KEY = "65a808e1de41c6756cc5f7b3183112a7";
 var cors = require("cors");
@@ -26,8 +28,15 @@ const getMetaData = async ({ movieName, year, path }) => {
       `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&language=en-US&query=${movieName}&year=${year}&page=1&include_adult=true`
     );
     // return data;
+    if (data.results.length > 1) {
+      data.results = [
+        data.results.find((m) => m?.release_date?.split("-")[0] === year),
+      ];
+    }
     data.path = path;
+    // console.log(movieName, year, data);
     resolve(data);
+    reject("Some error occurred");
   });
 };
 
@@ -35,19 +44,22 @@ let moviesArray = [];
 
 const getMoviesData = async () => {
   try {
-    let index = 1;
     console.log("Searching the directory for movies...");
     await finder.on("directory", async (dir, stat, stop) => {
-      index++;
-
-      if (index > 10) stop();
       var base = path.basename(dir);
       const folderName = dir;
       if (base === ".git" || base === "node_modules") stop();
       else {
+        let parentFolderIndex = moviesArray.findIndex(({ path }) => 
+           `${location}\\${dir}`.includes(path)
+        );
+
+        if (parentFolderIndex > -1) moviesArray.splice(parentFolderIndex, 1);
+
         let year = (dir.match(/\d{4}/) || [])[0] || "";
         let movieName = (year ? dir.split(year) : [dir])[0];
-        movieName = movieName.replace(".", " ").replace("(", " ").trim();
+        movieName = movieName.replace(/\./g, " ").replace("(", " ").trim();
+        movieName = movieName.split("\\").slice(-1)[0];
         if (movieName)
           moviesArray.push({
             movieName,
@@ -108,7 +120,9 @@ app.get("/getActors", async (req, res) => {
 app.post("/openDirectory", async (req, res) => {
   let { path } = req.body;
 
-  nrc.run(["explorer " + path], {cwd: path}).then((data) => console.log(data));
+  nrc
+    .run(["explorer " + path], { cwd: path })
+    .then((data) => console.log(data));
   res.json(req.body);
 });
 
@@ -135,12 +149,12 @@ app.post("/playMovie", async (req, res) => {
   });
 });
 
-// try {
-//   console.log("Running...");
-//   getMoviesData();
-// } catch (error) {
-//   console.log(error);
-// }
+try {
+  console.log("Running...");
+  getMoviesData();
+} catch (error) {
+  console.log(error);
+}
 
 app.listen(4000, function () {
   console.log("Movies Explorer Started on Port 4000");
