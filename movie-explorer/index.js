@@ -41,7 +41,7 @@ const getMetaData = async ({ movieName, year, path }) => {
       // console.log(movieName, year, data);
       resolve(data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       reject("Some error occurred");
     }
   });
@@ -161,18 +161,32 @@ app.post("/playMovie", async (req, res) => {
   });
 });
 
+const crawlPath = async (_path) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const api = new fdir()
+        .withFullPaths()
+        .onlyDirs()
+        .exclude((dirName, dirPath) => dirPath.includes("_other"))
+        .crawl(_path);
+      resolve(await api.withPromise());
+    } catch (error) {
+      console.log(error);
+      reject("Some error occurred");
+    }
+  });
+};
+
 app.get("/loadData", async (req, res) => {
   try {
     let moviesArray = [];
-    const api = new fdir()
-      .withFullPaths()
-      .onlyDirs()
-      .exclude((dirName, dirPath) => {
-        return dirPath.includes("_other");
-        // return dirName.startsWith(".")
-      })
-      .crawl("D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV");
-    const foldersArray = await api.withPromise();
+    let pathsList = [
+      "D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV",
+      "D:\\Downloads QB and Browser\\Movies\\Newer",
+    ];
+
+    let foldersArray = await Promise.all(pathsList.map(crawlPath));
+    foldersArray = foldersArray.flat();
 
     foldersArray.forEach((folderPath) => {
       let parentFolderIndex = moviesArray.findIndex(({ path }) =>
@@ -190,7 +204,6 @@ app.get("/loadData", async (req, res) => {
           movieName,
           year,
           path: folderPath,
-          // path: `${location}\\${folderPath}\\`,
         });
     });
 
@@ -214,6 +227,16 @@ app.get("/loadData", async (req, res) => {
   } catch (error) {
     console.log(error);
   }
+});
+
+app.get("/multiple", async (req, res) => {
+  const api = new fdir()
+    .withFullPaths()
+    .onlyDirs()
+    .exclude((dirName, dirPath) => {
+      return dirPath.includes("_other");
+    })
+    .crawl("D:\\Downloads QB and Browser\\Movies\\MOVIES AND TV");
 });
 
 // try {
